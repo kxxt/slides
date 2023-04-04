@@ -35,7 +35,7 @@ css: unocss
 
 ---
 layout: image-left
-image: /ocio.png
+image: //ocio.png
 ---
 
 # 介绍
@@ -95,7 +95,7 @@ Investigation
 
 ---
 layout: image-left
-image: /investigation-2.png
+image: //investigation-2.png
 ---
 # 开始排查
 Investigation
