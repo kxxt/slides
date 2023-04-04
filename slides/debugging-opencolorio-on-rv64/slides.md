@@ -323,7 +323,7 @@ Debugging
 
 <div style="width: 40rem;margin-left: -10rem;">
 
-```cpp
+```cpp {13-18}
 void GammaMoncurveMirrorOpCPUFwd::apply(const void* inImg, void* outImg, long numPixels) const {
   const float* in = (const float*)inImg;
   float* out = (float*)outImg;
