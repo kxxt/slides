@@ -87,7 +87,7 @@ Investigation
 理所应当不应该出现行为差异. 
 
 但是最后事实证明, 即使都是 IEEE 标准的浮点数, 
-也可能有 implementation-defined 的行为. 
+也可能有不一样的结果. 
 
 ::right::
 
@@ -525,7 +525,7 @@ layout: two-cols
 # 问题根源
 Cause
 
-那么, 编译器生成 `fmadd` 指令符合 IEEE 754 标准吗?
+那么, 编译器生成 `fmadd` 指令符合 IEEE 754 和 C/C++ 标准吗?
 
 sterprim 同学找到了标准中的相关描述:
 
@@ -534,26 +534,55 @@ bounded range and precision, rounding only once to the destination format. No un
 exception (see 7) can arise due to the multiplication, but only due to the addition; and so
 fusedMultiplyAdd differs from a multiplication operation followed by an addition operation.
 
-所以说编译器对下面这类表达式生成 FMA 指令是符合 IEEE 754 标准的:
+::right::
+
+<div class="ml-8">
+
+另外, 在 C99 标准中(第 80 页) 有以下表述允许多个浮点操作合并成一个:
+
+> A floating expression may be **contracted**, that is, evaluated as though it were an atomic
+> operation, thereby omitting rounding errors implied by the source code and the
+> expression evaluation method. The `FP_CONTRACT` pragma in `<math.h>` provides a
+> way to disallow contracted expressions. **Otherwise, whether and how expressions are contracted is implementation-defined.**
+
+浮点表达式是否被收缩, 以及如何被收缩都是 implementation-defined 的.
+
+所以说编译器对下面这类表达式生成 FMA 指令是符合标准的:
 
 ```cpp
 pixel[2] * blu[0] + blu[1]
 ```
 
-::right::
 
-<div class="ml-8">
+</div>
+
+
+---
+layout: two-cols
+---
+
+# 问题根源
+Cause
 
 所以说, 最后的结论是 OCIO 的测试写的有问题, 他们没考虑到 FMA 指令的存在会使得计算结果的精度更高.
 
-即使使用的都是 IEEE 754 标准的浮点数, 在不同的平台上的计算结果也可能不一样.
-
+所以即使使用的都是 IEEE 754 标准的浮点数, 在不同的平台上结果也可能不一样.
 - 去看 gcc 的文档, 发现 `-ffp-contract` 选项默认是 `-ffp-contract=fast`, 也就是说允许编译器把多个浮点操作收缩成一个, 即默认启用 FMA.
 - clang 现在默认是 `-ffp-contract=on`, 启用 FMA.
 - 但是**注意 gcc 里 `-ffp-contract=on` 是等价与 `-ffp-contract=off` 的**.
 
 > `-ffp-contract=on` enables floating-point expression contraction if allowed by the language standard. This is currently not implemented and treated equal to `-ffp-contract=off`. 
 
+
+::right::
+
+<div class="ml-8">
+
+虽然 GCC 默认设置了 `-ffp-contract=fast`, 但是由于 GCC 在 x86_64 上默认 target 通用的 x86_64, 所以在 x86_64 的平台上, FMA 指令是不会被默认启用的.
+
+在 x86_64 上, 启用 `-mfma` 选项之后能得到和 RISC-V 上一样的结果.
+
+![](/repro-amd64.jpg)
 
 </div>
 
@@ -573,6 +602,8 @@ layout: cover
 - https://riscv.org/wp-content/uploads/2017/05/riscv-spec-v2.2.pdf
 - https://clang.llvm.org/docs/UsersManual.html
 - https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html
+- https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html
+- https://www.dii.uchile.cl/~daespino/files/Iso_C_1999_definition.pdf
 
 # Bug Report
 
