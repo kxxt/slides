@@ -107,7 +107,7 @@ Chromium's build system
 
 ---
 layout: image-right
-image: branches.png
+image: https://github.com/kxxt/slides/blob/main/slides/electron-riscv-porting/public/branches.png?raw=true
 ---
 
 # How does the RISC-V port work?
@@ -120,7 +120,7 @@ Branch model
 
 ---
 layout: image-right
-image: releases.png
+image: https://github.com/kxxt/slides/blob/main/slides/electron-riscv-porting/public/releases.png?raw=true
 ---
 
 # How does the RISC-V port work?
@@ -140,7 +140,7 @@ Release model
 
 ---
 layout: image-right
-image: releases.png
+image: https://github.com/kxxt/slides/blob/main/slides/electron-riscv-porting/public/releases.png?raw=true
 ---
 
 # How does the RISC-V port work?
@@ -155,7 +155,7 @@ I have no choice but to upload the latest revision to the upstream tag and clobb
 
 ---
 layout: image-right
-image: assets.png
+image: https://github.com/kxxt/slides/blob/main/slides/electron-riscv-porting/public/assets.png?raw=true
 backgroundSize: contain
 ---
 
