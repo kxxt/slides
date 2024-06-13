@@ -107,7 +107,7 @@ Chromium's build system
 
 ---
 layout: image-right
-image: /branches.png
+image: branches.png
 ---
 
 # How does the RISC-V port work?
@@ -120,7 +120,7 @@ Branch model
 
 ---
 layout: image-right
-image: /releases.png
+image: releases.png
 ---
 
 # How does the RISC-V port work?
@@ -140,7 +140,7 @@ Release model
 
 ---
 layout: image-right
-image: /releases.png
+image: releases.png
 ---
 
 # How does the RISC-V port work?
@@ -155,7 +155,7 @@ I have no choice but to upload the latest revision to the upstream tag and clobb
 
 ---
 layout: image-right
-image: /assets.png
+image: assets.png
 backgroundSize: contain
 ---
 
