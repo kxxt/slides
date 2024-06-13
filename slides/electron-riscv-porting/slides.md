@@ -24,7 +24,7 @@ transition: slide-left
 mdc: true
 ---
 
-# <img src="images/electron.png" width="128px" style="display: inline"> Electron RISC-V <img src="images/riscv.png" width="128px" style="display: inline"> Porting
+# <img src="/images/electron.png" width="128px" style="display: inline"> Electron RISC-V <img src="/images/riscv.png" width="128px" style="display: inline"> Porting
 
 ## Presenter: kxxt \<rsworktech@outlook.com\>
 
@@ -45,7 +45,7 @@ mdc: true
 transition: fade-out
 ---
 
-# What is Electron <img src="images/electron.png" width="64px" style="display: inline">?
+# What is Electron <img src="/images/electron.png" width="64px" style="display: inline">?
 
 电子垃圾
 
@@ -59,8 +59,8 @@ h1.equ {
 
 <h1 class="equ"> <logos-electron size="74px"/> > <logos-chrome size="74px"/> + <logos-nodejs size="74px"/> (shared <logos-v8 size="74px"/>) </h1>
 
-<img src="images/meme1.png" width="200px" style="display: inline">
-<img src="images/meme2.png" width="400px" style="display: inline">
+<img src="/images/meme1.png" width="200px" style="display: inline">
+<img src="/images/meme2.png" width="400px" style="display: inline">
 
 
 ---
@@ -107,7 +107,7 @@ Chromium's build system
 
 ---
 layout: image-right
-image: images/branches.png
+image: /images/branches.png
 ---
 
 # How does the RISC-V port work?
@@ -120,7 +120,7 @@ Branch model
 
 ---
 layout: image-right
-image: images/releases.png
+image: /images/releases.png
 ---
 
 # How does the RISC-V port work?
@@ -140,7 +140,7 @@ Release model
 
 ---
 layout: image-right
-image: images/releases.png
+image: /images/releases.png
 ---
 
 # How does the RISC-V port work?
@@ -155,7 +155,7 @@ I have no choice but to upload the latest revision to the upstream tag and clobb
 
 ---
 layout: image-right
-image: images/assets.png
+image: /images/assets.png
 backgroundSize: contain
 ---
 
