@@ -64,6 +64,36 @@ h1.equ {
 
 
 ---
+
+# Status of the RISC-V port
+
+Most of the electron apps can be made to work on riscv64. The performance still needs improvement.
+
+<img src="/apps.png" width="640px" style="display: inline">
+
+<p style="float: right; width: 10em;">
+  Electron Apps running on Arch Linux RISC-V on SG2042
+  <br>
+  <br>
+  Top Right: VSCodium
+  <br>
+  <br>
+  Bottom Right: Obsidian
+  (Proprietary)
+  <br>
+  <br>
+  Bottom Left: Zettlr
+  <br>
+</p>
+
+---
+
+# Status of the RISC-V port
+
+Element Desktop running on Arch Linux RISC-V on Unmatched board
+
+<img src="/element.png" width="666px" style="display: inline">
+---
 transition: slide-up
 level: 2
 ---
