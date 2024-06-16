@@ -59,9 +59,15 @@ h1.equ {
 
 <h1 class="equ"> <logos-electron size="74px"/> > <logos-chrome size="74px"/> + <logos-nodejs size="74px"/> (shared <logos-v8 size="74px"/>) </h1>
 
+<v-click>
+
 <img src="/meme1.png" width="200px" style="display: inline">
+
+</v-click>
+<v-click>
 <img src="/meme2.png" width="400px" style="display: inline">
 
+</v-click>
 
 ---
 
@@ -75,14 +81,14 @@ Most of the electron apps can be made to work on riscv64. The performance still 
   Electron Apps running on Arch Linux RISC-V on SG2042
   <br>
   <br>
-  Top Right: VSCodium
+  Top Right: VSCodium (Upstreamed)
   <br>
   <br>
   Bottom Right: Obsidian
-  (Proprietary)
+  (Proprietary, unmodified, using system electron)
   <br>
   <br>
-  Bottom Left: Zettlr
+  Bottom Left: Zettlr (PKGBUILD Patched)
   <br>
 </p>
 
