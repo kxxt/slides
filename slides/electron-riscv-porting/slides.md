@@ -99,6 +99,13 @@ Most of the electron apps can be made to work on riscv64. The performance still 
 Element Desktop running on Arch Linux RISC-V on Unmatched board
 
 <img src="/element.png" width="666px" style="display: inline">
+
+<p style="float: right; width: 9em;">
+  The performance of the RISC-V port is still not good enough to fluently run Element Desktop.
+
+  (Or we can say, we need better hardware to run it fluently.)
+</p>
+
 ---
 transition: slide-up
 level: 2
@@ -111,23 +118,65 @@ DEPS and patches
 - [Electron uses DEPS(invented by chromium) to manage dependencies](https://github.com/riscv-forks/electron/blob/v31.0.1-riscv/DEPS)
 - After syncing the dependencies, a hook applies [tons of patches](https://github.com/riscv-forks/electron/tree/v31.0.1-riscv/patches) to chromium and nodejs source code
 - It reuses chromium's build system(gn, ninja) to build the final electron binary
-- So basically, electron's build system is a fork of chromium's build system
+- So basically, electron uses chromium's build system
 
----
-
-# How does Electron's build system work?
-
-Chromium's build system
+# How does Chromium's build system work?
 
 - Chromium maintains its own builds of clang and rust toolchain.
 - The build system uses debian sysroots by default.
 
-# How does this complicates the RISC-V port?
+---
 
-- To follow upstream's approach:
+# How does this complicates the RISC-V port?
+To follow upstream's approach
 - [A separately maintained patch](https://github.com/riscv-forks/electron/blob/README/sysroot.patch) to create debian sysroots for riscv64.
 - Chroimum's clang build is missing some riscv64 parts(e.g. compiler-rt), so for cross-compilation, [we need to build clang ourselves](TODO).
 - Rust also needs to be built because of [#121924](https://github.com/rust-lang/rust/issues/121924). I fixed it in [#123612](https://github.com/rust-lang/rust/pull/123612). This fix has landed in rust 1.79.0 (Released on 13 June).
+
+<div style="float: left;--prism-font-size: 1rem;">
+
+```c
+// reproducer.c
+extern void hello();
+int test () {
+  hello();return 0;
+}
+```
+
+</div>
+
+<div style="float: left;--prism-font-size: 1rem;">
+
+```rust
+// reproducer.rs
+#![feature(no_core)]
+#![feature(lang_items)]
+#![no_std]
+#![no_core]
+#[lang = "sized"]
+trait Sized {}
+#[no_mangle]
+pub fn hello() {}
+```
+
+</div>
+
+
+```makefile
+.PHONY: clean
+libreproducer.so: reproducer.o libreproducer.rlib
+	clang --target=riscv64-linux-gnu -flto=thin -march=rv64gc -mabi=lp64d -fuse-ld=lld -shared -nostdlib -o $@ $^
+libreproducer.rlib: reproducer.rs rust-toolchain
+	rustc --target riscv64gc-unknown-linux-gnu -Clinker-plugin-lto -Cpanic=abort --crate-type=rlib reproducer.rs
+reproducer.o: reproducer.c
+	clang --target=riscv64-linux-gnu -march=rv64gc -mabi=lp64d -flto=thin -O2 -c $< -o $@
+```
+
+```
+ld.lld: error: lto.tmp: cannot link object files with
+different floating-point ABI from lto.tmp
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+```
 
 ---
 
