@@ -130,7 +130,7 @@ DEPS and patches
 # How does this complicates the RISC-V port?
 To follow upstream's approach
 - [A separately maintained patch](https://github.com/riscv-forks/electron/blob/README/sysroot.patch) to create debian sysroots for riscv64.
-- Chroimum's clang build is missing some riscv64 parts(e.g. compiler-rt), so for cross-compilation, [we need to build clang ourselves](TODO).
+- Chroimum's clang build is missing some riscv64 parts(e.g. compiler-rt), so for cross-compilation, [we need to build clang ourselves](https://github.com/riscv-forks/electron/blob/v30.1.1-riscv/patches/chromium/0001-clang-add-riscv64-support-to-package-script.patch).
 - Rust also needs to be built because of [#121924](https://github.com/rust-lang/rust/issues/121924). I fixed it in [#123612](https://github.com/rust-lang/rust/pull/123612). This fix has landed in rust 1.79.0 (Released on 13 June).
 
 <div style="float: left;--prism-font-size: 1rem;">
@@ -142,6 +142,10 @@ int test () {
   hello();return 0;
 }
 ```
+
+Cross Language LTO
+
+is broken on RISC-V
 
 </div>
 
@@ -238,6 +242,8 @@ some poor electron tooling doesn't support the former tags well.
 This creates a problem: there is only one upstream tag but multiple riscv revisions based on it.
 I have no choice but to upload the latest revision to the upstream tag and clobber the old one.
 
+Thus the upstream tag can be taken as a pointer to the latest riscv revision.
+
 ---
 layout: image-right
 image: https://github.com/kxxt/slides/blob/main/slides/electron-riscv-porting/public/assets.png?raw=true
@@ -261,184 +267,165 @@ So I publish the zstd compressed debug tar files if their size is less than 2GB.
 
 # How does the RISC-V port work (internally)?
 
-- Re-use electron's existing patching infrastructure to apply RISC-V patches.
-- For each electron major version, 
+- Re-use electron's patching infrastructure to apply RISC-V patches.
+- For each electron major version, the RISC-V patches need to be updated. This is the core part of the work.
+- For electron minor version updates, usually the RISC-V patches don't need to be updated. It's a trival git rebase.
+- [The Continuous Delivery](https://github.com/riscv-forks/electron-riscv-releases/blob/main/.github/workflows/release.yml)
+  builds electron on self-hosted runners because of poor performance of GitHub runners.
+  - Optionally, we need to build clang and rust toolchains in the pipeline if they were not already built.
+  - The self-hosted runners run in a systemd-nspawn container and should be migrated to <logos-docker width="100px" /> to make it more portable and reproducible.
 
 ---
 class: px-20
 ---
 
-# Themes
+# A recent performance regression
 
-Slidev comes with powerful theming support. Themes can provide styles, layouts, components, or even configurations for tools. Switching between themes by just **one edit** in your frontmatter:
+A V8 Performance regression
 
-<div grid="~ cols-2 gap-2" m="t-2">
+<img src="/performance-comparation.gif" width="680px" style="float: left; margin-left: -3em;">
 
-```yaml
----
-theme: default
----
-```
+<div style="float: right; width: 12em; margin-right: -2em;">
 
-```yaml
----
-theme: seriph
----
-```
+[riscv-forks/electron#1](https://github.com/riscv-forks/electron/issues/1)
 
-<img border="rounded" src="https://github.com/slidevjs/themes/blob/main/screenshots/theme-default/01.png?raw=true" alt="">
+Severe performance regression are encountered when running Code OSS/VSCodium with electron >= 26.
 
-<img border="rounded" src="https://github.com/slidevjs/themes/blob/main/screenshots/theme-seriph/01.png?raw=true" alt="">
+Left: Performance regression
 
-</div>
-
-Read more about [How to use a theme](https://sli.dev/themes/use.html) and
-check out the [Awesome Themes Gallery](https://sli.dev/themes/gallery.html).
-
----
-
-# Clicks Animations
-
-You can add `v-click` to elements to add a click animation.
-
-<div v-click>
-
-This shows up when you click the slide:
-
-```html
-<div v-click>This shows up when you click the slide.</div>
-```
-
-</div>
-
-<br>
-
-<v-click>
-
-The <span v-mark.red="3"><code>v-mark</code> directive</span>
-also allows you to add
-<span v-mark.circle.orange="4">inline marks</span>
-, powered by [Rough Notation](https://roughnotation.com/):
-
-```html
-<span v-mark.underline.orange>inline markers</span>
-```
-
-</v-click>
-
-<div mt-20 v-click>
-
-[Learn More](https://sli.dev/guide/animations#click-animations)
+Right: Performance regression fixed
 
 </div>
 
 ---
 
-# Motions
+# A recent performance regression
 
-Motion animations are powered by [@vueuse/motion](https://motion.vueuse.org/), triggered by `v-motion` directive.
+Bisection
 
-```html
-<div
-  v-motion
-  :initial="{ x: -80 }"
-  :enter="{ x: 0 }"
-  :click-3="{ x: 80 }"
-  :leave="{ x: 1000 }"
->
-  Slidev
-</div>
+- We have Continuous Delivery that could cross-compile electron quickly, that makes it possible to bisect the performance regression. 
+- There are two layers of bisecting at first:
+  - Electron: First bisected to `[25.9.8, 26.0.0]`, then to `[v26.0.0-nightly.20230523, v26.0.0-nightly.20230524]`.
+    - The only commit that looks suspicious is `30e992dec4 chore: bump chromium to 115.0.5786.0 (main) (#38301)`. It bumps chromium from `115.0.5760.0` to `115.0.5786.0`.
+  - Chromium: bisect `115.0.5760.0..115.0.5786.0`, 5889 commits in total, at most 13 commits need to be checked.
+    - The bisection finished after checking 9 commits.
+---
+
+# A recent performance regression
+
+Bisection
+
+The bisection of chromium shows that the performance regression is caused by:
+
+```log
+commit 6a609fb2d6c29f25c2dbce26afa165c0e80f4768
+Author: v8-ci-autoroll-builder <v8-ci-autoroll-builder@chops-service-accounts.iam.gserviceaccount.com>
+Date:   Wed May 17 17:38:50 2023 +0000
+
+    Update V8 to version 11.5.138.
+    
+    Summary of changes available at:
+    https://chromium.googlesource.com/v8/v8/+log/5e9b891a..0f44e4c2
+    
+    Change-Id: Ib5f6f43ba7ecbbbbc93867850d149a52bd692483
+    Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/4544498
+    Bot-Commit: v8-ci-autoroll-builder <v8-ci-autoroll-builder@chops-service-accounts.iam.gserviceaccount.com>
+    Commit-Queue: v8-ci-autoroll-builder <v8-ci-autoroll-builder@chops-service-accounts.iam.gserviceaccount.com>
+    Cr-Commit-Position: refs/heads/main@{#1145460}
+
+ DEPS | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 ```
 
-<div class="w-60 relative">
-  <div class="relative w-40 h-40">
-    <img
-      v-motion
-      :initial="{ x: 800, y: -100, scale: 1.5, rotate: -50 }"
-      :enter="final"
-      class="absolute inset-0"
-      src="https://sli.dev/logo-square.png"
-      alt=""
-    />
-    <img
-      v-motion
-      :initial="{ y: 500, x: -100, scale: 2 }"
-      :enter="final"
-      class="absolute inset-0"
-      src="https://sli.dev/logo-circle.png"
-      alt=""
-    />
-    <img
-      v-motion
-      :initial="{ x: 600, y: 400, scale: 2, rotate: 100 }"
-      :enter="final"
-      class="absolute inset-0"
-      src="https://sli.dev/logo-triangle.png"
-      alt=""
-    />
-  </div>
+Unfortunately, this means that we need to bisect further from chromium into V8.
 
-  <div
-    class="text-5xl absolute top-14 left-40 text-[#2B90B6] -z-1"
-    v-motion
-    :initial="{ x: -80, opacity: 0}"
-    :enter="{ x: 0, opacity: 1, transition: { delay: 2000, duration: 1000 } }">
-    Slidev
-  </div>
-</div>
+---
 
-<!-- vue script setup scripts can be directly used in markdown, and will only affects current page -->
-<script setup lang="ts">
-const final = {
-  x: 0,
-  y: 0,
-  rotate: 0,
-  scale: 1,
-  transition: {
-    type: 'spring',
-    damping: 10,
-    stiffness: 20,
-    mass: 2
+# A recent performance regression
+
+V8 Bisection
+
+But fortunately, there are only 7 commits between `11.5.137` and `11.5.138`.
+
+```log
+0f44e4c2a6f Version 11.5.138
+f6d19916516 [riscv] Implement probe mmu mode
+004ee17f86a [heap] Remove dead code from sweeper
+8d8a6c11ba6 [riscv][simulator]Modify the implementation of the vfsgnj
+08f3d86855e [test] Update ODROID dimension after upgrade
+6fed41859a3 [api] Instantiate lazy accessors in DefinePropertyWithInterceptor
+2d134cf5556 [riscv64][android] apply flush_icache system call number directly
+```
+
+`8d8a6c11ba6` is good. At this point, I looked into `f6d19916516 [riscv] Implement probe mmu mode` and I think it's the cause of the performance regression.
+
+---
+
+# A recent performance regression
+
+V8 Bisection
+
+<div style="float: left;">
+
+````md magic-move {lines: true}
+```cpp
+void Assembler::li_ptr(Register rd, int64_t imm) {
+  // Initialize rd with an address
+  // Pointers are 48 bits
+  // 6 fixed instructions are generated
+  DCHECK_EQ((imm & 0xfff0000000000000ll), 0);
+  int64_t a6 = imm & 0x3f;                      // bits 0:5. 6 bits
+  int64_t b11 = (imm >> 6) & 0x7ff;             // bits 6:11. 11 bits
+  int64_t high_31 = (imm >> 17) & 0x7fffffff;   // 31 bits
+  int64_t high_20 = ((high_31 + 0x800) >> 12);  // 19 bits
+  int64_t low_12 = high_31 & 0xfff;             // 12 bits
+  lui(rd, (int32_t)high_20);
+  addi(rd, rd, low_12);  // 31 bits in rd.
+  slli(rd, rd, 11);      // Space for next 11 bis
+  ori(rd, rd, b11);      // 11 bits are put in. 42 bit in rd
+  slli(rd, rd, 6);       // Space for next 6 bits
+  ori(rd, rd, a6);       // 6 bits are put in. 48 bis in rd
+}
+```
+```cpp {2-3,19-22|all|2}
+void Assembler::li_ptr(Register rd, int64_t imm) {
+  base::CPU cpu;
+  if (cpu.riscv_mmu() != base::CPU::RV_MMU_MODE::kRiscvSV57) {
+    // Initialize rd with an address
+    // Pointers are 48 bits
+    // 6 fixed instructions are generated
+    DCHECK_EQ((imm & 0xfff0000000000000ll), 0);
+    int64_t a6 = imm & 0x3f;                      // bits 0:5. 6 bits
+    int64_t b11 = (imm >> 6) & 0x7ff;             // bits 6:11. 11 bits
+    int64_t high_31 = (imm >> 17) & 0x7fffffff;   // 31 bits
+    int64_t high_20 = ((high_31 + 0x800) >> 12);  // 19 bits
+    int64_t low_12 = high_31 & 0xfff;             // 12 bits
+    lui(rd, (int32_t)high_20);
+    addi(rd, rd, low_12);  // 31 bits in rd.
+    slli(rd, rd, 11);      // Space for next 11 bis
+    ori(rd, rd, b11);      // 11 bits are put in. 42 bit in rd
+    slli(rd, rd, 6);       // Space for next 6 bits
+    ori(rd, rd, a6);       // 6 bits are put in. 48 bis in rd
+  } else {
+    FATAL("SV57 is not supported");
+    UNIMPLEMENTED();
   }
 }
-</script>
-
-<div
-  v-motion
-  :initial="{ x:35, y: 30, opacity: 0}"
-  :enter="{ y: 0, opacity: 1, transition: { delay: 3500 } }">
-
-[Learn More](https://sli.dev/guide/animations.html#motion)
+```
+````
 
 </div>
 
----
+<v-click click="4">
+<div style="float: right; width: 14em;">
 
-# LaTeX
+Although my <mdi-language-cpp color="purple"/> skills has now become a little rusty <mdi-language-rust color="brown" />,
+I could see that the `cpu` variable declaration could bring a lot of side effects.
 
-LaTeX is supported out-of-box powered by [KaTeX](https://katex.org/).
+<img src="/ferris.svg" >
 
-<br>
-
-Inline $\sqrt{3x-1}+(1+x)^2$
-
-Block
-$$ {1|3|all}
-\begin{array}{c}
-
-\nabla \times \vec{\mathbf{B}} -\, \frac1c\, \frac{\partial\vec{\mathbf{E}}}{\partial t} &
-= \frac{4\pi}{c}\vec{\mathbf{j}}    \nabla \cdot \vec{\mathbf{E}} & = 4 \pi \rho \\
-
-\nabla \times \vec{\mathbf{E}}\, +\, \frac1c\, \frac{\partial\vec{\mathbf{B}}}{\partial t} & = \vec{\mathbf{0}} \\
-
-\nabla \cdot \vec{\mathbf{B}} & = 0
-
-\end{array}
-$$
-
-<br>
-
-[Learn more](https://sli.dev/guide/syntax#latex)
+</div>
+</v-click>
 
 ---
 
