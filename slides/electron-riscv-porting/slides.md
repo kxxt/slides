@@ -40,8 +40,8 @@ mdc: true
 
 - What is Electron?
 - Status of the RISC-V port
-- How does Electron's build system work?
 - Brief History of the RISC-V Port
+- How does Electron's build system work?
 - How does the RISC-V port work?
 - A recent performance regression
 
@@ -109,6 +109,18 @@ Element Desktop running on Arch Linux RISC-V on Unmatched board
 
   (Or we can say, we need better hardware to run it fluently.)
 </p>
+
+---
+
+# Brief History of the RISC-V Port
+
+- [OpenSUSE's port of electron to riscv64](https://build.opensuse.org/package/show/openSUSE:Factory:RISCV/nodejs-electron)
+- electron22 ported to Arch Linux riscv64 based on OpenSUSE's port.
+- Initially it's compiled directly on Arch Linux riscv64 (1day+ build time on 5950X via qemu-user).
+- On SG2042, it could be built in 6 hours but [SG2042 can't build it reliably](https://github.com/revyos/revyos/issues/27).
+  It's likely a kernel/firmware bug because it can't be reproduced on other riscv64 platforms.
+- Later, I [established a fork](https://github.com/riscv-forks/electron) and get cross-compilation working.
+  - It is also used in Arch Linux riscv64 to directly build on riscv64: https://github.com/felixonmars/archriscv-packages/tree/master/electron28
 
 ---
 transition: slide-up
@@ -185,18 +197,6 @@ ld.lld: error: lto.tmp: cannot link object files with
 different floating-point ABI from lto.tmp
 clang: error: linker command failed with exit code 1 (use -v to see invocation)
 ```
-
----
-
-# Brief History of the RISC-V Port
-
-- [OpenSUSE's port of electron to riscv64](https://build.opensuse.org/package/show/openSUSE:Factory:RISCV/nodejs-electron)
-- electron22 ported to Arch Linux riscv64 based on OpenSUSE's port.
-- Initially it's compiled directly on Arch Linux riscv64 (1day+ build time on 5950X via qemu-user).
-- On SG2042, it could be built in 6 hours but [SG2042 can't build it reliably](https://github.com/revyos/revyos/issues/27).
-  It's likely a kernel/firmware bug because it can't be reproduced on other riscv64 platforms.
-- Later, I [established a fork](https://github.com/riscv-forks/electron) and get cross-compilation working.
-  - It is also used in Arch Linux riscv64 to directly build on riscv64: https://github.com/felixonmars/archriscv-packages/tree/master/electron28
 
 ---
 layout: image-right
