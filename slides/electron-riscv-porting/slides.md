@@ -30,6 +30,10 @@ mdc: true
 
 ## <logos-archlinux  /> Arch Linux RISC-V at PLCT Lab
 
+<br>
+
+#### Rendered slides are available at https://kxxt.github.io/slides/electron-riscv-porting/
+
 ---
 
 # Contents
@@ -363,7 +367,7 @@ f6d19916516 [riscv] Implement probe mmu mode
 
 # A recent performance regression
 
-V8 Bisection
+V8 Code
 
 <div style="float: left;">
 
@@ -429,110 +433,114 @@ I could see that the `cpu` variable declaration could bring a lot of side effect
 
 ---
 
-# Diagrams
+# A recent performance regression
 
-You can create diagrams / graphs from textual descriptions, directly in your Markdown.
+V8 Code (Simplified)
+<div style="float: left; margin-top: -1em;">
 
-<div class="grid grid-cols-4 gap-5 pt-4 -mb-6">
-
-```mermaid {scale: 0.5, alt: 'A simple sequence diagram'}
-sequenceDiagram
-    Alice->John: Hello John, how are you?
-    Note over Alice,John: A typical interaction
-```
-
-```mermaid {theme: 'neutral', scale: 0.8}
-graph TD
-B[Text] --> C{Decision}
-C -->|One| D[Result 1]
-C -->|Two| E[Result 2]
-```
-
-```mermaid
-mindmap
-  root((mindmap))
-    Origins
-      Long history
-      ::icon(fa fa-book)
-      Popularisation
-        British popular psychology author Tony Buzan
-    Research
-      On effectiveness<br/>and features
-      On Automatic creation
-        Uses
-            Creative techniques
-            Strategic planning
-            Argument mapping
-    Tools
-      Pen and paper
-      Mermaid
-```
-
-```plantuml {scale: 0.7}
-@startuml
-
-package "Some Group" {
-  HTTP - [First Component]
-  [Another Component]
-}
-
-node "Other Groups" {
-  FTP - [Second Component]
-  [First Component] --> FTP
-}
-
-cloud {
-  [Example 1]
-}
-
-database "MySql" {
-  folder "This is my folder" {
-    [Folder 3]
+```cpp
+// src/base/cpu.cc
+CPU::CPU() : // - skip -
+      riscv_mmu_(RV_MMU_MODE::kRiscvSV48),
+      has_rvv_(false) {
+  memcpy(vendor_, "Unknown", 8);
+#if V8_HOST_ARCH_RISCV64
+#if V8_OS_LINUX
+  CPUInfo cpu_info;
+  char* features = cpu_info.ExtractField("isa");
+  if (HasListItem(features, "rv64imafdc"))
+    has_fpu_ = true;
+  if (HasListItem(features, "rv64imafdcv")) {
+    has_fpu_ = true; has_rvv_ = true;
   }
-  frame "Foo" {
-    [Frame 4]
-  }
+  char* mmu = cpu_info.ExtractField("mmu");
+  if (HasListItem(mmu, "sv48"))
+    riscv_mmu_ = RV_MMU_MODE::kRiscvSV48;
+  if (HasListItem(mmu, "sv39"))
+    riscv_mmu_ = RV_MMU_MODE::kRiscvSV39;
+  if (HasListItem(mmu, "sv57"))
+    riscv_mmu_ = RV_MMU_MODE::kRiscvSV57;
+#endif
+#endif  // V8_HOST_ARCH_RISCV64
 }
-
-[Another Component] --> [Example 1]
-[Example 1] --> [Folder 3]
-[Folder 3] --> [Frame 4]
-
-@enduml
 ```
 
 </div>
 
-[Learn More](https://sli.dev/guide/syntax.html#diagrams)
+<div style="float: left; margin-left: 1em; margin-top: -2.8em;">
 
----
-foo: bar
-dragPos:
-  square: 691,32,167,_,-16
----
-
-# Draggable Elements
-
-Double-click on the draggable elements to edit their positions.
-
-<br>
-
-###### Directive Usage
-
-```md
-<img v-drag="'square'" src="https://sli.dev/logo.png">
+```cpp
+CPUInfo() : datalen_(0) {
+  static const char PATHNAME[] = "/proc/cpuinfo";
+  FILE* fp = base::Fopen(PATHNAME, "r");
+  if (fp != nullptr) {
+    for (;;) {
+      char buffer[256];
+      size_t n = fread(buffer, 1, sizeof(buffer), fp);
+      if (n == 0) break;
+      datalen_ += n;
+    }
+    base::Fclose(fp);
+  }
+  // Read the contents of the cpuinfo file.
+  data_ = new char[datalen_ + 1];
+  fp = base::Fopen(PATHNAME, "r");
+  if (fp != nullptr) {
+    for (size_t offset = 0; offset < datalen_; ) {
+      size_t n = fread(data_ + offset, 1, datalen_ - offset, fp);
+      if (n == 0) break;
+      offset += n;
+    }
+    base::Fclose(fp);
+  }
+  // Zero-terminate the data.
+  data_[datalen_] = '\0';
+}
 ```
-<v-drag-arrow pos="67,452,253,46" two-way op70 />
+
+</div>
+
+<v-click>
+<div style="position: absolute; left: 50%;">
+<p style="position: relative; background: darkblue; padding: 2rem; left: -50%; border-radius: 1.2rem; margin-inline: auto;" >
+
+Every call to `Assembler::li_ptr` constructs a new `CPU` instance,
+where the constructor will open and read the entire contents of `/proc/cpuinfo` to probe MMU mode.
+
+This is the cause of the performance regression.
+
+</p>
+</div>
+</v-click>
 
 ---
-src: ./pages/multiple-entries.md
-hide: false
----
 
+# A recent performance regression
+
+Fix
+
+It is partially fixed in [`[riscv] Skip check sv57 when enable pointer compress`](https://chromium-review.googlesource.com/c/v8/v8/+/5430889)
+as the `cpu` variable becomes an unused variable.
+
+I opened [`[riscv] avoid cpu probing in li_ptr`](https://chromium-review.googlesource.com/c/v8/v8/+/5612950)
+to remove the `cpu` variable declaration in `Assembler::li_ptr` to completely fix it.
+
+For electrons, this performance regression is fixed in **v29.4.0.riscv2, v29.4.2.riscv2, v30.1.0.riscv2, v27.3.11.riscv2, v26.6.10.riscv2, v28.3.3.riscv2 and all later releases**.
+
+This performance regression also affects Node.js **21 and 22 and the main branch**.
+
+It is fixed in main branch by [nodejs/node#53412](https://github.com/nodejs/node/pull/53412). It will be backported to 22.x.
+
+But Node.js 21 won't get the fix because it is already EOL.
+
+---
 layout: center
-class: text-center
 ---
 
-# Learn More
+# Q & A
 
-[Documentations](https://sli.dev) · [GitHub](https://github.com/slidevjs/slidev) · [Showcases](https://sli.dev/showcases.html)
+## Thank you for listening!
+
+### <logos-opensource /> The slides are open source at https://github.com/kxxt/slides/blob/main/slides/electron-riscv-porting/slides.md
+
+#### Rendered slides are available at https://kxxt.github.io/slides/electron-riscv-porting/
