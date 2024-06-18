@@ -39,6 +39,7 @@ mdc: true
 - How does Electron's build system work?
 - How does the RISC-V port work?
 - A recent performance regression
+- Some TODOs
 
 ---
 transition: fade-out
@@ -137,6 +138,8 @@ DEPS and patches
 - The build system uses debian sysroots by default.
 
 ---
+
+<p style="position: absolute; left: 17em; top: 3.6em;"> BTW, <a href="https://github.com/llvm/llvm-project/issues/79944">https://github.com/llvm/llvm-project/issues/79944</a> </p>
 
 # How does this complicates the RISC-V port?
 To follow upstream's approach
@@ -560,6 +563,15 @@ Only after I bisected the performance regression of electron, I remember this No
 <img src="/perfcmp.jpg" width="640px" style="float: left;margin-right: 1em;">
 
 ( The benchmark was ran inside qemu-user. Coincidentally qemu emulates the `/proc/cpuinfo` file that is the core part of this perf regression. )
+
+---
+
+# Some TODOs
+
+- Investigate some segfaults that happens from time to time when running VSCodium.
+- Migrate the Continuous Delivery infrastructure to Docker.
+- Automate the process of minor/patch version updates.
+- Continue to keep up with the upstream release cycle.
 
 ---
 layout: center
