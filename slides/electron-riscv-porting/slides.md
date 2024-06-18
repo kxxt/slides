@@ -6,11 +6,6 @@ theme: seriph
 background: https://cover.sli.dev
 # some information about your slides, markdown enabled
 title:  Electron RISC-V Porting
-info: |
-  ## Slidev Starter Template
-  Presentation slides for developers.
-
-  Learn more at [Sli.dev](https://sli.dev)
 # apply any unocss classes to the current slide
 class: text-center
 # https://sli.dev/custom/highlighters.html
@@ -517,6 +512,22 @@ This is the cause of the performance regression.
 
 # A recent performance regression
 
+Strace
+
+If we run it under strace, we can discover the problem more quickly.
+
+<img src="/strace.gif" style="float: left; width: 640px; margin-right: 1em;">
+
+```
+strace -f -e trace=%file
+(Optionally, use -k to 
+get a stack trace)
+```
+
+---
+
+# A recent performance regression
+
 Fix
 
 It is partially fixed in [`[riscv] Skip check sv57 when enable pointer compress`](https://chromium-review.googlesource.com/c/v8/v8/+/5430889)
@@ -532,6 +543,23 @@ This performance regression also affects Node.js **21 and 22 and the main branch
 It is fixed in main branch by [nodejs/node#53412](https://github.com/nodejs/node/pull/53412). It will be backported to 22.x.
 
 But Node.js 21 won't get the fix because it is already EOL.
+
+---
+
+# Hindsight: Maybe this could be fixed earlier
+.
+
+I actually came across this performance regression when packaging some packages that uses Node.js 21 in November last year.
+
+<img src="/chat.png" style="float: left;">
+
+Then I used hyperfine to do a simple benchmark. But I didn't take it seriously and forget about it afterwards.
+
+Only after I bisected the performance regression of electron, I remember this Node.js perf regression that I had forgotten.
+
+<img src="/perfcmp.jpg" width="640px" style="float: left;margin-right: 1em;">
+
+( The benchmark was ran inside qemu-user. Coincidentally qemu emulates the `/proc/cpuinfo` file that is the core part of this perf regression. )
 
 ---
 layout: center
